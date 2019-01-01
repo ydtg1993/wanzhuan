@@ -1,0 +1,99 @@
+redis key
+1. user:fd:? - 哈希 {ip:xxx.xxx.xxx.xxx,userid:17}、 用户TCP连接资源信息，示例：user:fd:17
+2. order:? - 哈希、 订单信息，示例：order:P20180911064257000019
+3. order:list - 哈希 {orderid:xxx,details:{}} 订单列表
+
+================================================================================
+tcp socket
+客户端发送数据包格式
+{
+	"type": "xxx",	//数据包类型
+	"data": {}		//data数据主体
+}
+
+1.客户端用户建立TCP长连接，关联用户user_id和TCP资源fd
+{
+	"type": "connect",
+	"data": {	
+		"user_id": 1
+	}
+}
+
+2.客户端用户发送数据包与TCP服务器维持心跳
+{
+	"type": "keepalive",
+	"data": {	
+		"user_id": 1
+	}
+}
+
+3.下单人客户端下单触发广播事件，推送下单订单信息给接单人
+[执行匹配逻辑，基于下单信息到相应redis列表筛选出匹配用户，推送消息给匹配的用户]
+{
+	"type": "createorder",
+	"data": {
+		"user_id": 1,
+		"order_id": "P20180911064257000019"
+	}
+}
+
+================================================================================
+
+{"type": "connect","data": {"user_id": 17}}\r\n
+{"type": "keepalive","data": {"user_id": 17}}\r\n
+
+{"type": "connect","data": {"user_id": 16}}\r\n
+{"type": "connect","data": {"user_id": 17}}\r\n
+{"type": "connect","data": {"user_id": 18}}\r\n
+
+
+{"type": "keepalive","data": {"user_id": 16}}\r\n
+{"type": "keepalive","data": {"user_id": 17}}\r\n
+{"type": "keepalive","data": {"user_id": 18}}\r\n
+
+
+
+//用户抢单后，下单用户收到的抢单用户数据
+{
+    "type": "graborder",
+    "data": [
+        {
+            "id": "17",
+            "nickname": "汤姆小马",
+            "sexy": "男",
+            "longitude": "104.093411",
+            "latitude": "30.661238",
+            "profession": "",
+            "avatar": "http://avatar-1257042421.cos.ap-chengdu.myqcloud.com/IMG_0055.JPG",
+            "hx_id": "18382413281-17",
+            "about": "92896",
+            "order_info": {
+                "user_id": "16",
+                "order_id": "P20181115153951000077",
+                "max_accept_num": "3"
+            }
+        }   
+    ]
+}
+
+//下单人选取抢单人后，查看匹配状态的数据
+{
+    "type": "acceptorder",
+    "data": {
+        "order_id": "P20181114203115000090",
+        "matching_status": 1, // 0匹配失败、1匹配成功
+        "user_info": {
+            "id": "16",
+            "nickname": "最帅",
+            "sexy": "男",
+            "longitude": "104.093404",
+            "latitude": "30.661233",
+            "profession": "自由职业者",
+            "avatar": "http://thirdqq.qlogo.cn/qqapp/101493404/2AA8555ABA5BCE7504ABAED152324584/100",
+            "hx_id": "15008465672-16"
+        }
+    }
+}
+
+
+
